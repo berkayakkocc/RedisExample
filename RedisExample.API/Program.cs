@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using RedisExample.API.Models;
 using RedisExample.API.Repositories;
+using RedisExample.API.Services;
 using RedisExample.Cache;
 using StackExchange.Redis;
 
@@ -13,7 +14,18 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddScoped<IProductRepository, ProductRepository>();
+
+builder.Services.AddScoped<IProductServices, ProductServices>();
+builder.Services.AddScoped<IProductRepository>(sp =>
+{
+    var appDbContext = sp.GetRequiredService<AppDbContext>();
+
+    var productRepository = new ProductRepository(appDbContext);
+
+    var redisService = sp.GetRequiredService<RedisService>();
+
+    return new ProductRepositoryWithCacheDecorator(productRepository, redisService);
+});
 
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
